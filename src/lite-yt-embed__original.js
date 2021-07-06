@@ -14,10 +14,6 @@ class LiteYTEmbed extends HTMLElement {
     constructor() {
         super();
 
-        if(typeof YT === "undefined") {
-            this.fetchYoutubeAPI();
-        }
-
         // Gotta encode the untrusted value
         // https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#rule-2---attribute-escape-before-inserting-untrusted-data-into-html-common-attributes
         this.videoId = encodeURIComponent(this.getAttribute('videoid'));
@@ -42,15 +38,6 @@ class LiteYTEmbed extends HTMLElement {
         // Warm the connection for the poster image
         LiteYTEmbed.addPrefetch('preload', this.posterUrl, 'image');
         // TODO: support dynamically setting the attribute via attributeChangedCallback
-    }
-
-    fetchYoutubeAPI() {
-        var tag = document.createElement('script');
-        tag.src = 'https://www.youtube.com/iframe_api';
-        tag.async = true;
-        tag.defer = false;
-        var ytScript = document.getElementsByTagName('script')[0];
-        ytScript.parentNode.insertBefore(tag, ytScript);
     }
 
     connectedCallback() {
@@ -111,33 +98,29 @@ class LiteYTEmbed extends HTMLElement {
         LiteYTEmbed.preconnected = true;
     }
 
-    onYouTubeIframeAPIReady() {
-       const videoWrapper = document.createElement('div')
-       videoWrapper.id = this.videoId;
-       document.body.appendChild(videoWrapper);
 
-       this.insertAdjacentElement('beforeend', videoWrapper);
-        new YT.Player(videoWrapper, {
-            width: '100%',
-            videoId: this.videoId,
-            playerVars: { 'autoplay': 1, 'playsinline': 1 },
-            events: {
-                'onReady': (event) => {
-                    event.target.mute();
-                    event.target.playVideo();
-                }
-            }
-        });
-    }
 
     addIframe(){
-        if(YT.Player) {
-            this.onYouTubeIframeAPIReady();
-        } else {
-            console.log('Youtube API is not available');
-            const iframeHTML = `<iframe width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen src="https://www.youtube-nocookie.com/embed/${this.videoId}?autoplay=1"></iframe>`;
-            this.insertAdjacentHTML('beforeend', iframeHTML);
-        }
+        console.log('Add Iframe', this)
+        const iframeHTML2 = `
+<iframe width="560" height="315" frameborder="0"
+  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+  src="https://www.youtube-nocookie.com/embed/${this.videoId}?autoplay=1"
+></iframe>`;
+
+        const iframeHTML = `
+        <iframe
+            allowfullscreen="1"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            title="YouTube video player"
+            src="https://www.youtube.com/embed/8OvfmZ_TTkM?autoplay=1&mute=1"
+            id="widget2"
+            width="100%"
+            height="100%"
+            frameborder="0"></iframe>`;
+
+        // this.insertAdjacentHTML('beforeend', iframeHTML);
+        // this.insertAdjacentHTML('afterend', iframeHTML);
         this.classList.add('lyt-activated');
     }
 }
