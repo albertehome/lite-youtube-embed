@@ -14,14 +14,9 @@ class LiteYTEmbed extends HTMLElement {
     constructor() {
         super();
 
-        if(typeof YT === "undefined") {
-            this.fetchYoutubeAPI();
-        }
-
         // Gotta encode the untrusted value
         // https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#rule-2---attribute-escape-before-inserting-untrusted-data-into-html-common-attributes
         this.videoId = encodeURIComponent(this.getAttribute('videoid'));
-
         /**
          * Lo, the youtube placeholder image!  (aka the thumbnail, poster image, etc)
          * There is much internet debate on the reliability of thumbnail URLs. Weak consensus is that you
@@ -44,13 +39,17 @@ class LiteYTEmbed extends HTMLElement {
         // TODO: support dynamically setting the attribute via attributeChangedCallback
     }
 
-    fetchYoutubeAPI() {
+    fetchYoutubeAPI(cb) {
         var tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
         tag.async = true;
-        tag.defer = false;
-        var ytScript = document.getElementsByTagName('script')[0];
-        ytScript.parentNode.insertBefore(tag, ytScript);
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        tag.onload = () => {
+            YT.ready(() => {
+                if(cb) cb();
+            })
+        };
     }
 
     connectedCallback() {
@@ -112,11 +111,11 @@ class LiteYTEmbed extends HTMLElement {
     }
 
     onYouTubeIframeAPIReady() {
-       const videoWrapper = document.createElement('div')
-       videoWrapper.id = this.videoId;
-       document.body.appendChild(videoWrapper);
+        const videoWrapper = document.createElement('div')
+        videoWrapper.id = this.videoId;
+        document.body.appendChild(videoWrapper);
+        this.insertAdjacentElement('beforeend', videoWrapper);
 
-       this.insertAdjacentElement('beforeend', videoWrapper);
         new YT.Player(videoWrapper, {
             width: '100%',
             videoId: this.videoId,
@@ -130,14 +129,14 @@ class LiteYTEmbed extends HTMLElement {
         });
     }
 
-    addIframe(){
-        if(YT.Player) {
-            this.onYouTubeIframeAPIReady();
-        } else {
-            console.log('Youtube API is not available');
-            const iframeHTML = `<iframe width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen src="https://www.youtube-nocookie.com/embed/${this.videoId}?autoplay=1"></iframe>`;
-            this.insertAdjacentHTML('beforeend', iframeHTML);
+   addIframe(){
+        if(typeof(YT) == 'undefined' || typeof(YT.Player) == 'undefined') {
+            this.fetchYoutubeAPI(this.onYouTubeIframeAPIReady.bind(this));
         }
+
+        // Keeping the default implementation for iframes
+        // const iframeHTML = `<iframe width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen src="https://www.youtube-nocookie.com/embed/${this.videoId}?autoplay=1"></iframe>`;
+        // this.insertAdjacentHTML('beforeend', iframeHTML);
         this.classList.add('lyt-activated');
     }
 }
